@@ -498,12 +498,13 @@ def LumCutOrbit(bhorbit,steplist=None,Lmax=None,Lmin=1e43,filename='bhorbitCUT.p
 		f.close()
 	return bhorbitCUT
 
-def smoothAcc(bhorbit,trange=None,bins=100,tunits='Gyr',initBHmass=1e6):
+def smoothAcc(bhorbit,trange=None,bins=100,tunits='Gyr'):
 	if trange==None:
 		trange = [0,bhorbit['Time'].in_units(tunits).max()]
-	dt = (trange[1]-trange[0])/float(bins)
-	mean,bins = np.histogram(bhorbit['Time'][(bhorbit['mass'].in_units('Msol')>initBHmass)].in_units(tunits),bins=bins,range=trange,weights=bhorbit['mdot'][(bhorbit['mass'].in_units('Msol')>initBHmass)].in_units('g s**-1')*bhorbit['dt'][(bhorbit['mass'].in_units('Msol')>initBHmass)].in_units(tunits)/dt)
-	return mean,bins[0:len(bins)-1]+0.5*dt
+	n,bins = np.histogram(bhorbit['Time'].in_units(tunits),bins=bins,range=trange)
+	sum,bins = np.histogram(bhorbit['Time'].in_units(tunits),bins=bins,range=trange,weights=bhorbit['mdot'])
+	mean = sum/n
+	return mean,bins[0:len(bins)-1]+0.5*(bins[1:len(bins)]-bins[0:len(bins)-1])
 
 def getBHFormInfo():
 	f= open("files.list")
@@ -594,7 +595,7 @@ def getBHhalo(simname,findcenter='hyb',minHM = 1e10,minNum=30,filename=None, ini
 		s = pynbody.load(line)
 		s.physical_units()
 		cboxsize = 2*s['x'].in_units('a kpc').max()
-		simBH, = np.where((np.in1d(s.star['iord'],bhiords))&(s.stars['tform']<0))
+		simBH, = np.where(np.in1d(s.star['iord'],bhiords))
 		if not len(simBH):
                         print "no BHs in this step! moving on..."
                         continue
@@ -619,10 +620,6 @@ def getBHhalo(simname,findcenter='hyb',minHM = 1e10,minNum=30,filename=None, ini
 		if not np.array_equal(allHaloID[invInd],amigastat['Grp'][statind[invInd]]):
 			print "fuck!"
 			return
-		if not np.array_equal(bhiords[simoutBH],s.star['iord'][simBH]):
-			print "fuck!"
-			return
-		print simoutBH
 		haloid[simoutBH,stepcnt] = allHaloID[invInd]
 		mhalo[simoutBH,stepcnt] = pynbody.array.SimArray(amigastat['Mvir(M_sol)'][statind[invInd]],munits)
 		mstar[simoutBH,stepcnt] = pynbody.array.SimArray(amigastat['StarMass(M_sol)'][statind[invInd]],munits)
@@ -700,34 +697,46 @@ def getBHhalo(simname,findcenter='hyb',minHM = 1e10,minNum=30,filename=None, ini
                 f.close()
 	return bhhalo
 
-def getAccDens(simname,s,vol = 25.**3, filename='AccDens.pkl',Mlimit=1.2e6):
-	munits = s['mass'].units
-        posunits = s['x'].units
-        velunits = s['vx'].units
-	tunits = posunits/velunits
-	if not os.path.exists(simname+'.BHAccLog.abridged'):
+def getAccDens(simname,vol = 25.**3, filename='AccDens.pkl',Mlimit=1.5e6):
+	munits = pynbody.units.Unit(np.str(1.9911e15)+' Msol')
+        #posunits = s['x'].units
+        #velunits = s['vx'].units
+	#tunits = posunits/velunits
+	#del(s)
+	#gc.collect()
+	if not os.path.exists(simname+'.BHAccLog.abridged'):#+np.str(Mlimit)):
 		print "Makeing abridged Accretion log file..."
-		str = """ awk '{print $1 " " $3 " " $5 " " $9 " " $20}' """ + simname + ".BHAccLog > " + simname + ".BHAccLog.abridged"
-		os.system(str)
+		Mlimitsim = 1.5e6/float(munits)
+		cstr = """ awk '{if ($5 > """+str(Mlimitsim)+""") print $5 " " $9 " " $20}' """ + simname + ".BHAccLog > " + simname + ".BHAccLog.abridged"#+np.str(Mlimit)
+		os.system(cstr)
 	print "reading in data..."
-	iord,time,mass,dM,scale= readcol.readcol(simname+'.BHAccLog.abridged',twod=False)
-	o = np.argsort(time)
+	mass,dM,scale= readcol.readcol(simname+'.BHAccLog.abridged',twod=False)
+	print "done!"
+	#del(iord)
+	#gc.collect()
+	print "sorting time..."
+	o = np.argsort(scale)
+	#del(time)
+	#gc.collect()
+	print "sorting other stuff..."
 	dM = pynbody.array.SimArray(dM[o],munits)
 	mass = pynbody.array.SimArray(mass[o],munits)
-	time = pynbody.array.SimArray(time[o],tunits)
+	#time = pynbody.array.SimArray(time[o],tunits)
 	scale = scale[o]
 	print "summing..."
 	rhoBH = np.cumsum(dM[(mass.in_units('Msol')>Mlimit)].in_units('Msol'))/vol
 	scale = scale[(mass.in_units('Msol')>Mlimit)]
-	time = time[(mass.in_units('Msol')>Mlimit)]
+	del(mass)
+	gc.collect()
+	#time = time[(mass.in_units('Msol')>Mlimit)]
 	if filename:
 		print "saving data..."
 		f = open(filename,'wb')
-		pickle.dump([rhoBH,scale,time],f)
+		pickle.dump([rhoBH,scale],f)
 		f.close()
-	return rhoBH,scale,time
+	return rhoBH,scale
 	
-def plotAccDens_v_z(rhoBH,scale,time,data=True,style='b-',ylog=True,xlog=True,overplot=False,lw=2,label=False):
+def plotAccDens_v_z(rhoBH,scale,data=True,style='b-',ylog=True,xlog=True,overplot=False,lw=2,label=False):
 	shankar09L = 3.2e5
 	shankar09H = 5.4e5
 	Salvaterra12 = 0.66e4 
@@ -736,9 +745,9 @@ def plotAccDens_v_z(rhoBH,scale,time,data=True,style='b-',ylog=True,xlog=True,ov
 	Treister13 = np.array([851.,666.,674.])
 	Treister13z = np.array([6.5,7.5,8.5])
 	Treister13zErr = np.array([.5,.5,.5])
-	Hopkins07zp1,Hopkins07 = readcol.readcol("/nobackupp8/mtremmel/QSOdata/RhoAccZ.csv",twod=False)
-	Hopkins07zp1H,Hopkins07H = readcol.readcol("/nobackupp8/mtremmel/QSOdata/RhoAccZPLUS.csv",twod=False)
-        Hopkins07zp1L,Hopkins07L = readcol.readcol("/nobackupp8/mtremmel/QSOdata/RhoAccZMINUS.csv",twod=False)
+	Hopkins07zp1,Hopkins07 = readcol.readcol("/u/sciteam/tremmel/QSOdata/RhoAccZ.csv",twod=False)
+	Hopkins07zp1H,Hopkins07H = readcol.readcol("/u/sciteam/tremmel/QSOdata/RhoAccZPLUS.csv",twod=False)
+        Hopkins07zp1L,Hopkins07L = readcol.readcol("/u/sciteam/tremmel/QSOdata/RhoAccZMINUS.csv",twod=False)
 	Hopkins07perr = 10**Hopkins07H - 10**Hopkins07
 	Hopkins07merr = 10**Hopkins07 - 10**Hopkins07L
 	plt.plot(scale**-1,rhoBH,style,linewidth=lw,label=label)
@@ -747,8 +756,8 @@ def plotAccDens_v_z(rhoBH,scale,time,data=True,style='b-',ylog=True,xlog=True,ov
 		err = shankar09H - shankar09
 		plt.errorbar([1.03],[shankar09],yerr=[err],color='black',fmt='D',label="Shankar+ 09")
 		Salvaterra12z = (Salvaterra12zH + Salvaterra12zL)/2.
-		plt.errorbar([Salvaterra12z+1],[Salvaterra12],color='black',fmt='x',xerr=[Salvaterra12zH-Salvaterra12z],yerr=0.5*Salvaterra12,uplims=[True],label='Salvaterra+ 12')
-		plt.errorbar(Treister13z,Treister13,color='black',fmt='o',xerr=Treister13zErr,yerr=0.5*Treister13,uplims=[True,True,True], label='Treister+ 13')
+		plt.errorbar([Salvaterra12z+1],[Salvaterra12],color='black',fmt='x',xerr=[Salvaterra12zH-Salvaterra12z],yerr=0.5*Salvaterra12,lolims=[True],label='Salvaterra+ 12')
+		plt.errorbar(Treister13z,Treister13,color='black',fmt='o',xerr=Treister13zErr,yerr=0.5*Treister13,lolims=[True,True,True], label='Treister+ 13')
 		plt.errorbar(Hopkins07zp1,10**Hopkins07,color='grey',fmt='o',yerr=(Hopkins07merr,Hopkins07perr),label='Hopkins+ 07')
 	if not overplot:
 		if ylog: plt.yscale('log',base=10)
