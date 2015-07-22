@@ -57,10 +57,10 @@ def colorcolor(halos=[1,2],average=False,simdirs=['romulus8.256gst3.bwBH'],dodus
 #			print len(color1), len(color2), len(red), len(1./red)
 #			print hcol[hcnt],hcmap[hcnt],1/red
 			if average==False:
-				plt.scatter(color1[hcnt,:],color2[hcnt,:],c=1./red,norm=redcNorm,cmap=hcmap[hcnt],marker=simmark[simcnt],s=msize,label=simlabels[simcnt]+", "+hlabels[hcnt],color=hcol[hcnt])
+				plt.scatter(color1[hcnt,:],color2[hcnt,:],c=1./red,norm=redcNorm,cmap=hcmap[hcnt],marker=simmark[simcnt],s=msize,label=simlabels[simcnt]+" "+hlabels[hcnt],color=hcol[hcnt])
 			hcnt += 1
 		if average==True:
-			plt.scatter(color1.mean(axis=0),color2.mean(axis=0),c=1./red,norm=redcNorm,cmap=hcmap[0],marker=simmark[simcnt],s=msize,label=simlabels[simcnt]+", "+hlabels[0],color=hcol[0])
+			plt.scatter(color1.mean(axis=0),color2.mean(axis=0),c=1./red,norm=redcNorm,cmap=hcmap[0],marker=simmark[simcnt],s=msize,label=simlabels[simcnt]+" "+hlabels[0],color=hcol[0])
 			plt.errorbar(color1.mean(axis=0),color2.mean(axis=0),xerr=color1.std(axis=0),yerr=color2.std(axis=0),fmt='o',color=hcol[0],markersize=0,linewidth=2,elinewidth=0.75)
 		simcnt += 1
 
@@ -128,10 +128,10 @@ def colortime(halos=[1,2],average=False,simdirs=['romulus8.256gst3.bwBH'],dodust
                                 reddening =  dust['u'][ud[0]] - dust['v'][ud[0]]
                                 color += reddening
 			if average==False:
-				plt.plot(time,color[hcnt,:],color=hcol[hcnt],yerr=color.str(axis=0),markersize=0,fmt='o',linewidth=2,linestyle=simstyle[simcnt],label=simlabels[simcnt]+", "+hlabels[hcnt])
+				plt.plot(time,color[hcnt,:],color=hcol[hcnt],linewidth=2,linestyle=simstyle[simcnt],label=simlabels[simcnt]+" "+hlabels[hcnt])
 			hcnt += 1
 		if average==True:
-			plt.errorbar(time,color.mean(axis=0),color=hcol[0],yerr=color.std(axis=0),linewidth=2,linestyle=simstyle[simcnt],label=simlabels[simcnt]+", "+hlabels[0])
+			plt.errorbar(time,color.mean(axis=0),color=hcol[0],yerr=color.std(axis=0),linewidth=2,linestyle=simstyle[simcnt],label=simlabels[simcnt]+" "+hlabels[0])
 		simcnt += 1
 	
 	if plotData == True:
@@ -232,6 +232,7 @@ def BrightBHGal(bhhalo,bhorbit,filelist='files.list',stepfile='steps.list',dt='1
 			smtmp = starM[o]
 			gmtmp = gasM[o]
 			dmMtmp = dmM[o]
+			inttmp = interact[o]
 			print ltmp
 			lsrt = np.argsort(ltmp)
 			data['BHlum'] = np.append(data['BHlum'],ltmp[lsrt[-1]])
@@ -242,6 +243,7 @@ def BrightBHGal(bhhalo,bhorbit,filelist='files.list',stepfile='steps.list',dt='1
 			data['starmass'] = np.append(data['starmass'],smtmp[lsrt[-1]])
 			data['dmmass'] = np.append(data['dmmass'],dmMtmp[lsrt[-1]])
 			data['gasmass'] = np.append(data['gasmass'],gmtmp[lsrt[-1]])
+			data['interact'] = np.append(data['interact'],inttmp[lsrt[-1]])
 
 			if len(ltmp) > 1:
 				data['otherBHlum'] = np.append(data['otherBHlum'],ltmp[lsrt[-2]])
