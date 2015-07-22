@@ -697,20 +697,26 @@ def getBHhalo(simname,findcenter='hyb',minHM = 1e10,minNum=30,filename=None, ini
                 f.close()
 	return bhhalo
 
-def getAccDens(simname,vol = 25.**3, filename='AccDens.pkl',Mlimit=1.5e6):
-	munits = pynbody.units.Unit(np.str(1.9911e15)+' Msol')
-        #posunits = s['x'].units
-        #velunits = s['vx'].units
-	#tunits = posunits/velunits
-	#del(s)
-	#gc.collect()
-	if not os.path.exists(simname+'.BHAccLog.abridged'):#+np.str(Mlimit)):
+def getAccDens(simname,vol = 25.**3, filename='AccDens.pkl',Mlimit=1.5e6,Llimit=1e42):
+	f = open('files.list','r')
+	files = f.readlines()
+	f.close()
+	s = pynbody.load(files[-5].strip('\n').strip('/'))
+	munits = s.s['mass'].units
+	tunits = s.s['x'].units/s.s['vel'].units
+	mdotunits = munits/tunits
+	#munits = pynbody.units.Unit(np.str(1.9911e15)+' Msol')
+	del(s)
+	gc.collect()
+	if not os.path.exists(simname+'.BHorbit.abridged'):#+np.str(Mlimit)):
 		print "Makeing abridged Accretion log file..."
-		Mlimitsim = 1.5e6/float(munits)
-		cstr = """ awk '{if ($5 > """+str(Mlimitsim)+""") print $5 " " $9 " " $20}' """ + simname + ".BHAccLog > " + simname + ".BHAccLog.abridged"#+np.str(Mlimit)
+		Mlimitsim = Mlimit/munits.in_units('Msol')
+		mdotlimit = Llimit/(0.1*3e10*3e10)
+		mdotlimit /= mdotunits.in_units('g s**-1')
+		cstr = """ awk '{if ($4 > """+str(Mlimitsim)+""" && $12 > """+str(mdotlimit)+""") print $4 " " $12 " " $13 " " $16}' """ + simname + ".orbit > " + simname + ".BHorbit.abridged"
 		os.system(cstr)
 	print "reading in data..."
-	mass,dM,scale= readcol.readcol(simname+'.BHAccLog.abridged',twod=False)
+	mass, mdot, dM, scale = readcol.readcol(simname+'.BHorbit.abridged',twod=False)
 	print "done!"
 	#del(iord)
 	#gc.collect()
@@ -721,12 +727,17 @@ def getAccDens(simname,vol = 25.**3, filename='AccDens.pkl',Mlimit=1.5e6):
 	print "sorting other stuff..."
 	dM = pynbody.array.SimArray(dM[o],munits)
 	mass = pynbody.array.SimArray(mass[o],munits)
+	mdot = pynbody.array.SimArray(mdot[o],mdotunits)
 	#time = pynbody.array.SimArray(time[o],tunits)
 	scale = scale[o]
+	del(o)
+	gc.collect()
 	print "summing..."
-	rhoBH = np.cumsum(dM[(mass.in_units('Msol')>Mlimit)].in_units('Msol'))/vol
-	scale = scale[(mass.in_units('Msol')>Mlimit)]
+	rhoBH = np.cumsum(dM[((mass.in_units('Msol')-dM.in_units('Msol')>Mlimit)&(mdot.in_units('g s**-1')*0.1*3e10*3e10>Llimit))].in_units('Msol'))/vol
+	scale = scale[((mass.in_units('Msol')-dM.in_units('Msol')>Mlimit)&(mdot.in_units('g s**-1')*0.1*3e10*3e10>Llimit))]
 	del(mass)
+	del(dM)
+	del(mdot)
 	gc.collect()
 	#time = time[(mass.in_units('Msol')>Mlimit)]
 	if filename:
