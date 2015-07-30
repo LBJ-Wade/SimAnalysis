@@ -756,9 +756,9 @@ def plotAccDens_v_z(rhoBH,scale,data=True,style='b-',ylog=True,xlog=True,overplo
 	Treister13 = np.array([851.,666.,674.])
 	Treister13z = np.array([6.5,7.5,8.5])
 	Treister13zErr = np.array([.5,.5,.5])
-	Hopkins07zp1,Hopkins07 = readcol.readcol("/u/sciteam/tremmel/QSOdata/RhoAccZ.csv",twod=False)
-	Hopkins07zp1H,Hopkins07H = readcol.readcol("/u/sciteam/tremmel/QSOdata/RhoAccZPLUS.csv",twod=False)
-        Hopkins07zp1L,Hopkins07L = readcol.readcol("/u/sciteam/tremmel/QSOdata/RhoAccZMINUS.csv",twod=False)
+	Hopkins07zp1,Hopkins07 = readcol.readcol("/nobackupp8/mtremmel/DATA/QSOdata/RhoAccZ.csv",twod=False)
+	Hopkins07zp1H,Hopkins07H = readcol.readcol("/nobackupp8/mtremmel/DATA/QSOdata/RhoAccZPLUS.csv",twod=False)
+        Hopkins07zp1L,Hopkins07L = readcol.readcol("/nobackupp8/mtremmel/DATA/QSOdata/RhoAccZMINUS.csv",twod=False)
 	Hopkins07perr = 10**Hopkins07H - 10**Hopkins07
 	Hopkins07merr = 10**Hopkins07 - 10**Hopkins07L
 	plt.plot(scale**-1,rhoBH,style,linewidth=lw,label=label)
@@ -767,13 +767,15 @@ def plotAccDens_v_z(rhoBH,scale,data=True,style='b-',ylog=True,xlog=True,overplo
 		err = shankar09H - shankar09
 		plt.errorbar([1.03],[shankar09],yerr=[err],color='black',fmt='D',label="Shankar+ 09")
 		Salvaterra12z = (Salvaterra12zH + Salvaterra12zL)/2.
-		plt.errorbar([Salvaterra12z+1],[Salvaterra12],color='black',fmt='x',xerr=[Salvaterra12zH-Salvaterra12z],yerr=0.5*Salvaterra12,lolims=[True],label='Salvaterra+ 12')
-		plt.errorbar(Treister13z,Treister13,color='black',fmt='o',xerr=Treister13zErr,yerr=0.5*Treister13,lolims=[True,True,True], label='Treister+ 13')
+		plt.errorbar([Salvaterra12z+1],[Salvaterra12],color='black',fmt='x',xerr=[Salvaterra12zH-Salvaterra12z],yerr=0.5*Salvaterra12,uplims=[True],label='Salvaterra+ 12')
+		plt.errorbar(Treister13z,Treister13,color='black',fmt='o',xerr=Treister13zErr,yerr=0.5*Treister13,uplims=[True,True,True], label='Treister+ 13')
 		plt.errorbar(Hopkins07zp1,10**Hopkins07,color='grey',fmt='o',yerr=(Hopkins07merr,Hopkins07perr),label='Hopkins+ 07')
 	if not overplot:
 		if ylog: plt.yscale('log',base=10)
 		if xlog: plt.xscale('log',base=10)
 		plt.xticks([1,2,3,4,5,6,7,8,9,10],['0','1','2','3','4','5','6','7','8','9'])
+		plt.ylabel(r'log($\rho_{acc}$ [M$_{\odot}$ Mpc$^{-3}$])',fontsize=30)
+		plt.xlabel('Redshift',fontsize=30)
 	return
 	
 def getAccretion(simname, BHlist=[],filename=False, allData=False):
