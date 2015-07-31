@@ -59,12 +59,12 @@ def colorcolor(halos=[1,2],average=False,simdirs=['romulus8.256gst3.bwBH'],dodus
 			if average==False:
 				labelstr = False
 				if hlabels[hcnt] or simlabels[simcnt]: labelstr = simlabels[simcnt]+" "+hlabels[hcnt]
-				plt.scatter(color1[hcnt,:],color2[hcnt,:],c=1./red,norm=redcNorm,cmap=hcmap[hcnt],marker=simmark[simcnt],s=msize,label=labelstr)
+				plt.scatter(color1[hcnt,:],color2[hcnt,:],c=1./red,norm=redcNorm,cmap=hcmap[hcnt],marker=simmark[simcnt],s=msize,label=labelstr,color=hcol[hcnt])
 			hcnt += 1
 		if average==True:
 			labelstr=False
 			if hlabels[0]  or simlabels[0]  : labelstr = simlabels[0]+" "+hlabels[0]
-			plt.scatter(color1.mean(axis=0),color2.mean(axis=0),c=1./red,norm=redcNorm,cmap=hcmap[0],marker=simmark[simcnt],s=msize,label=labelstr)
+			plt.scatter(color1.mean(axis=0),color2.mean(axis=0),c=1./red,norm=redcNorm,cmap=hcmap[0],marker=simmark[simcnt],s=msize,label=labelstr,color=hcol[0])
 			plt.errorbar(color1.mean(axis=0),color2.mean(axis=0),xerr=color1.std(axis=0),yerr=color2.std(axis=0),fmt='o',color=hcol[0],markersize=0,linewidth=2,elinewidth=0.75)
 		simcnt += 1
 
@@ -91,8 +91,9 @@ def colorcolor(halos=[1,2],average=False,simdirs=['romulus8.256gst3.bwBH'],dodus
 	plt.legend(loc='upper left',fontsize=30)
 	return
 
-def colortime(halos=[1,2],average=False,simdirs=['romulus8.256gst3.bwBH'],dodust=True,dustfile = 'dust.pkl',magfile = 'mags.pkl',hcol=['red','blue'],simstyle=['solid','solid'],plotData=True,simlabels=['Romulus'],hlabels=['halo 1','halo 2'],overplot=False):
+def colortime(halos=[1,2],average=False,shade=False,simdirs=['romulus8.256gst3.bwBH'],dodust=True,dustfile = 'dust.pkl',magfile = 'mags.pkl',hcol=['red','blue'],simstyle=['solid','solid'],plotData=True,simlabels=['Romulus'],hlabels=['halo 1','halo 2'],overplot=False):
 	simcnt = 0
+	print "number of halos", len(halos)
         for dir in simdirs:
                 print "getting data for ", dir
                 magf = open(dir+'/'+magfile,'rb')
@@ -130,16 +131,26 @@ def colortime(halos=[1,2],average=False,simdirs=['romulus8.256gst3.bwBH'],dodust
                                         print "Halo", h, " not found in dust file... skipping..."
                                         continue
                                 reddening =  dust['u'][ud[0]] - dust['v'][ud[0]]
-                                color += reddening
-			if average==False:
+                                color[hcnt,:] += reddening
+			if average==False and shade==False:
 				labelstr = None
                                 if hlabels[hcnt] or simlabels[simcnt]: labelstr = simlabels[simcnt]+" "+hlabels[hcnt]
 				plt.plot(time,color[hcnt,:],color=hcol[hcnt],linewidth=2,linestyle=simstyle[simcnt],label=labelstr)
 			hcnt += 1
-		if average==True:
+		if average==True and shade==False:
 			labelstr = None
 			if hlabels[0] or simlabels[0]: labelstr = simlabels[0]+" "+hlabels[0]
 			plt.errorbar(time,color.mean(axis=0),color=hcol[0],yerr=color.std(axis=0),linewidth=2,linestyle=simstyle[simcnt],label=labelstr)
+		if shade==True and average==False:
+			labelstr = None
+                        if hlabels[0] or simlabels[0]: labelstr = simlabels[0]+" "+hlabels[0]
+			plt.fill_between(time,color.min(axis=0),color.max(axis=0),facecolor=hcol[0],alpha=0.5)	
+		if shade==True and average==True:
+			labelstr = None
+                        if hlabels[0] or simlabels[0]: labelstr = simlabels[0]+" "+hlabels[0]
+			print labelstr
+			plt.plot(time,color.mean(axis=0),color=hcol[0],label=labelstr,linestyle=simstyle[simcnt],linewidth=2)
+                        plt.fill_between(time,color.mean(axis=0)-color.std(axis=0),color.mean(axis=0)+color.std(axis=0),facecolor=hcol[0],alpha=0.5,label=labelstr)
 		simcnt += 1
 	
 	if plotData == True:
