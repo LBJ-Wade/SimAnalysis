@@ -713,11 +713,13 @@ def getAccDens(simname,vol = 25.**3, filename='AccDens.pkl',Mlimit=1.5e6,Llimit=
 		Mlimitsim = Mlimit/munits.in_units('Msol')
 		mdotlimit = Llimit/(0.1*3e10*3e10)
 		mdotlimit /= mdotunits.in_units('g s**-1')
-		cstr = """ awk '{if ($4 > """+str(Mlimitsim)+""" && $12 > """+str(mdotlimit)+""") print $4 " " $12 " " $13 " " $16}' """ + simname + ".orbit > " + simname + ".BHorbit.abridged"
+		cstr = """ awk '{if ($4 - $13 > """+str(Mlimitsim)+""" && $12 > """+str(mdotlimit)+""") print $4 " " $12 " " $13 " " $15 " " $16}' """ + simname + ".orbit > " + simname + ".BHorbit.abridged"
 		os.system(cstr)
 	print "reading in data..."
-	mass, mdot, dM, scale = readcol.readcol(simname+'.BHorbit.abridged',twod=False)
+	mass, mdot, dM, dt, scale = readcol.readcol(simname+'.BHorbit.abridged',twod=False)
 	print "done!"
+	del(dt)
+	gc.collect()
 	#del(iord)
 	#gc.collect()
 	print "sorting time..."
