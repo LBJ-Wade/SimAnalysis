@@ -31,7 +31,7 @@ def partial_derivative(func, var=0, point=[]):
     return scipy.misc.derivative(wraps, point[var], dx = 1e-8)
 
 def sfh(sim,filename=None,massform=True,initstarmass=False,makeplot=True,
-        subplot=False, trange=False, bins=100, binsize=False, zmin=False,overplot=False,**kwargs):
+        subplot=False, trange=False, bins=100, binsize=False, zmin=False,overplot=False,linestyle='-',color='k',linewidth=2,label=None,dored=True,**kwargs):
 
     '''
     star formation history
@@ -113,13 +113,14 @@ def sfh(sim,filename=None,massform=True,initstarmass=False,makeplot=True,
     if not makeplot:
     	sfhist, thebins = np.histogram(tforms, weights=weight, range=trange,bins=bins)
     if makeplot:
-	   sfhist, thebins, patches = plt.hist(tforms, weights=weight, range=trange,bins=bins,histtype='step',**kwargs)
+	   sfhist, thebins, patches = plt.hist(tforms, weights=weight, range=trange,bins=bins,histtype='step',linestyle=linestyle,color=color,linewidth=linewidth,label=label)
+	   plt.legend(loc='upper left',fontsize=20)
  	   if not overplot:
  	   	if not subplot:
  		       	plt.ylim(0.0,1.2*np.max(sfhist))
 			plt.xlim(trange)
-        		plt.xlabel('Time [Gyr]',fontsize='large')
-        		plt.ylabel('SFR [M$_\odot$ yr$^{-1}$]',fontsize='large')
+        		plt.xlabel('Time [Gyr]',fontsize=30)
+        		plt.ylabel('SFR [M$_\odot$ yr$^{-1}$]',fontsize=30)
     		else:
         		plt.set_ylim(0.0,1.2*np.max(sfhist))
 
@@ -129,17 +130,17 @@ def sfh(sim,filename=None,massform=True,initstarmass=False,makeplot=True,
 	   from pynbody.analysis import pkdgrav_cosmo as cosmo
 	   c = cosmo.Cosmology(sim=sim)
 	    
-	   if not overplot:
+	   if dored:
 	    	pz = plt.twiny()
 	    	if not zmin:
-			labelzs = np.arange(5,int(sim.properties['z'])-1,-1)
+			labelzs = np.arange(10,int(sim.properties['z'])-1,-1)
 	    	else:
 			labelzs = np.arange(10,int(sim.properties['z'])-1,-1)
 		times = [13.7*c.Exp2Time(1.0 / (1+z))/c.Exp2Time(1) for z in labelzs]
 	    	pz.set_xticks(times)
 	    	pz.set_xticklabels([str(x) for x in labelzs])
 	    	pz.set_xlim(x0, x1)
-	    	pz.set_xlabel('z')
+	    	pz.set_xlabel('Redshift',fontsize=30)
 	
 	   if (filename):
 	        if config['verbose']: print "Saving "+filename

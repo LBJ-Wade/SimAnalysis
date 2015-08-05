@@ -57,10 +57,14 @@ def colorcolor(halos=[1,2],average=False,simdirs=['romulus8.256gst3.bwBH'],dodus
 #			print len(color1), len(color2), len(red), len(1./red)
 #			print hcol[hcnt],hcmap[hcnt],1/red
 			if average==False:
-				plt.scatter(color1[hcnt,:],color2[hcnt,:],c=1./red,norm=redcNorm,cmap=hcmap[hcnt],marker=simmark[simcnt],s=msize,label=simlabels[simcnt]+", "+hlabels[hcnt],color=hcol[hcnt])
+				labelstr = False
+				if hlabels[hcnt] or simlabels[simcnt]: labelstr = simlabels[simcnt]+" "+hlabels[hcnt]
+				plt.scatter(color1[hcnt,:],color2[hcnt,:],c=1./red,norm=redcNorm,cmap=hcmap[hcnt],marker=simmark[simcnt],s=msize,label=labelstr,color=hcol[hcnt])
 			hcnt += 1
 		if average==True:
-			plt.scatter(color1.mean(axis=0),color2.mean(axis=0),c=1./red,norm=redcNorm,cmap=hcmap[0],marker=simmark[simcnt],s=msize,label=simlabels[simcnt]+", "+hlabels[0],color=hcol[0])
+			labelstr=False
+			if hlabels[0]  or simlabels[0]  : labelstr = simlabels[0]+" "+hlabels[0]
+			plt.scatter(color1.mean(axis=0),color2.mean(axis=0),c=1./red,norm=redcNorm,cmap=hcmap[0],marker=simmark[simcnt],s=msize,label=labelstr,color=hcol[0])
 			plt.errorbar(color1.mean(axis=0),color2.mean(axis=0),xerr=color1.std(axis=0),yerr=color2.std(axis=0),fmt='o',color=hcol[0],markersize=0,linewidth=2,elinewidth=0.75)
 		simcnt += 1
 
@@ -87,8 +91,9 @@ def colorcolor(halos=[1,2],average=False,simdirs=['romulus8.256gst3.bwBH'],dodus
 	plt.legend(loc='upper left',fontsize=30)
 	return
 
-def colortime(halos=[1,2],average=False,simdirs=['romulus8.256gst3.bwBH'],dodust=True,dustfile = 'dust.pkl',magfile = 'mags.pkl',hcol=['red','blue'],simstyle=['solid','solid'],plotData=True,simlabels=['Romulus'],hlabels=['halo 1','halo 2'],overplot=False):
+def colortime(halos=[1,2],average=False,shade=False,simdirs=['romulus8.256gst3.bwBH'],dodust=True,dustfile = 'dust.pkl',magfile = 'mags.pkl',hcol=['red','blue'],simstyle=['solid','solid'],plotData=True,simlabels=['Romulus'],hlabels=['halo 1','halo 2'],overplot=False):
 	simcnt = 0
+	print "number of halos", len(halos)
         for dir in simdirs:
                 print "getting data for ", dir
                 magf = open(dir+'/'+magfile,'rb')
@@ -126,12 +131,26 @@ def colortime(halos=[1,2],average=False,simdirs=['romulus8.256gst3.bwBH'],dodust
                                         print "Halo", h, " not found in dust file... skipping..."
                                         continue
                                 reddening =  dust['u'][ud[0]] - dust['v'][ud[0]]
-                                color += reddening
-			if average==False:
-				plt.plot(time,color[hcnt,:],color=hcol[hcnt],yerr=color.str(axis=0),markersize=0,fmt='o',linewidth=2,linestyle=simstyle[simcnt],label=simlabels[simcnt]+", "+hlabels[hcnt])
+                                color[hcnt,:] += reddening
+			if average==False and shade==False:
+				labelstr = None
+                                if hlabels[hcnt] or simlabels[simcnt]: labelstr = simlabels[simcnt]+" "+hlabels[hcnt]
+				plt.plot(time,color[hcnt,:],color=hcol[hcnt],linewidth=2,linestyle=simstyle[simcnt],label=labelstr)
 			hcnt += 1
-		if average==True:
-			plt.errorbar(time,color.mean(axis=0),color=hcol[0],yerr=color.std(axis=0),linewidth=2,linestyle=simstyle[simcnt],label=simlabels[simcnt]+", "+hlabels[0])
+		if average==True and shade==False:
+			labelstr = None
+			if hlabels[0] or simlabels[0]: labelstr = simlabels[0]+" "+hlabels[0]
+			plt.errorbar(time,color.mean(axis=0),color=hcol[0],yerr=color.std(axis=0),linewidth=2,linestyle=simstyle[simcnt],label=labelstr)
+		if shade==True and average==False:
+			labelstr = None
+                        if hlabels[0] or simlabels[0]: labelstr = simlabels[0]+" "+hlabels[0]
+			plt.fill_between(time,color.min(axis=0),color.max(axis=0),facecolor=hcol[0],alpha=0.5)	
+		if shade==True and average==True:
+			labelstr = None
+                        if hlabels[0] or simlabels[0]: labelstr = simlabels[0]+" "+hlabels[0]
+			print labelstr
+			plt.plot(time,color.mean(axis=0),color=hcol[0],label=labelstr,linestyle=simstyle[simcnt],linewidth=2)
+                        plt.fill_between(time,color.mean(axis=0)-color.std(axis=0),color.mean(axis=0)+color.std(axis=0),facecolor=hcol[0],alpha=0.5,label=labelstr)
 		simcnt += 1
 	
 	if plotData == True:
@@ -195,7 +214,7 @@ def BrightBHGal(bhhalo,bhorbit,filelist='files.list',stepfile='steps.list',dt='1
 			curbh = curbh[0]
 			curbh2 = curbh2[0]
 			if bhhalo['haloID'][curbh2,i]==0: continue
-			tt, = np.where((bhorbit['data'][curbh]['Time'].in_units(dtunits) <= simtime)&(bhorbit['data'][curbh]['Time'].in_units(dtunits) >= simtime - dt)&(bhorbit['data'][curbh]['mass'].in_units('Msol')>=1e6))
+			tt, = np.where((bhorbit['data'][curbh]['Time'].in_units(dtunits) <= simtime)&(bhorbit['data'][curbh]['Time'].in_units(dtunits) >= simtime - dt)&(bhorbit['data'][curbh]['mass'].in_units('Msol')-bhorbit['data'][curbh]['dM'].in_units('Msol')>=1e6))
 			lum = bhorbit['data'][curbh]['mdot'][tt].in_units('g s**-1')*0.1*3e10*3e10
 			mdot = bhorbit['data'][curbh]['mdot'][tt].in_units('Msol yr**-1')
 			tstep = bhorbit['data'][curbh]['dt'][tt].in_units(dtunits)
@@ -232,6 +251,7 @@ def BrightBHGal(bhhalo,bhorbit,filelist='files.list',stepfile='steps.list',dt='1
 			smtmp = starM[o]
 			gmtmp = gasM[o]
 			dmMtmp = dmM[o]
+			inttmp = interact[o]
 			print ltmp
 			lsrt = np.argsort(ltmp)
 			data['BHlum'] = np.append(data['BHlum'],ltmp[lsrt[-1]])
@@ -242,6 +262,7 @@ def BrightBHGal(bhhalo,bhorbit,filelist='files.list',stepfile='steps.list',dt='1
 			data['starmass'] = np.append(data['starmass'],smtmp[lsrt[-1]])
 			data['dmmass'] = np.append(data['dmmass'],dmMtmp[lsrt[-1]])
 			data['gasmass'] = np.append(data['gasmass'],gmtmp[lsrt[-1]])
+			data['interact'] = np.append(data['interact'],inttmp[lsrt[-1]])
 
 			if len(ltmp) > 1:
 				data['otherBHlum'] = np.append(data['otherBHlum'],ltmp[lsrt[-2]])
@@ -279,3 +300,44 @@ def BrightBHGal(bhhalo,bhorbit,filelist='files.list',stepfile='steps.list',dt='1
 		pickle.dump(data,f)
 		f.close()
 	return data
+
+
+def MulaneyBHSFR(sfr):
+	#Mulaney+ 2012
+	return 1e-3 * sfr
+
+def ChenBHSFR(sfr):
+	#Chen+ 2013
+	return 10**-3.72 * sfr**1.05
+
+def TotalIRto60micron(LIR):
+	'''based on figure 3 of Chary and Elbaz 2001'''
+	return LIR/2.
+
+def SFRtoIR(SFR):
+	'''based on Daddi+ 2007'''
+	return SFR / 1.73e-10 * 3.846e33
+
+def RosarioBHSFR(sfr):
+	#Rosario+ 2012
+	LIR = SFRtoIR(sfr)
+	L60 = TotalIRto60micron(LIR)
+	logL60norm = np.log10(L60/1e44)
+	logLBH = np.log10(L60/1e44)**(1.0/0.78) + np.log10(6.3e44)
+	LBH = 10**logLBH
+	mdot = pynbody.array.SimArray(LBH/(0.1*3e10*3e10),'g s**-1')
+	return mdot.in_units('Msol yr**-1')
+
+def plotBHSFRdata():
+	sfrline = 10**np.arange(-4,4,0.1)
+	mdotM12 = MulaneyBHSFR(sfrline)
+	mdotC13 = ChenBHSFR(sfrline)
+#	mdotR12 = RosarioBHSFR(sfrline)
+	plt.plot(sfrline,mdotM12,'b-',label='Mulaney+ 12',linewidth=2)
+	plt.plot(sfrline,mdotC13,'b--',label='Chen+ 13',linewidth=2)
+#	plt.plot(sfrline,mdotR12,'g-',label='Rosario+ 12',linewidth=2)
+	plt.legend(fontsize=20)
+	plt.ylabel(r'$\dot{\mathrm{M}_{BH}}$ [M$_{odot}$ yr$^{-1}$]',fontsize=30)
+	plt.xlabel(r'SFR [M$_{odot}$ yr$^{-1}$]',fontsize=30)
+	return
+	
