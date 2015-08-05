@@ -178,9 +178,9 @@ def CSFRFit(z,type='beh'):
 def plotCSFRdata(Volume):
 	#Duncan 14
 
-	zz = np.array([4, 5, 6, 7])+1
+	zz = np.array([4, 5, 6, 7])
 	ss = np.array([-1.14,-1.33,-1.58,-1.78])
-	plt.scatter(zz, 10**ss, color='k', marker='D', label='Duncan, K et al 2014', s=40)
+	plt.scatter(zz, 10**ss, color='k', marker='D', label='Duncan+ 14', s=40)
 	#Kistler 13:
 	sfr = np.array([0.0653, 0.03, 0.041, 0.0276, 0.025])
 	zhigh = [4.5, 5.5, 6.75, 8, 9.4]
@@ -196,10 +196,10 @@ def plotCSFRdata(Volume):
 	zfits = np.arange(1,11,0.01)
 	fitB,sigB = CSFRFit(zfits,type='beh')
 	fitH,sigH = CSFRFit(zfits,type='hop')
-	plt.plot(zfits+1,fitB,'k-',label='Behroozi+ 13')
-	plt.plot(zfits+1,fitH,'k--',label='Hopkins+ 06')
-	plt.fill_between(zfits+1,10**(np.log10(fitB)-sigB),10**(np.log10(fitB)+sigB),linewidth=1.5,facecolor='grey',alpha=0.2)
-	plt.fill_between(zfits+1,10**(np.log10(fitH)-sigH),10**(np.log10(fitH)+sigH),linewidth=1.5,facecolor='grey',alpha=0.2)
+	plt.plot(zfits,fitB,'k-',label='Behroozi+ 13')
+	plt.plot(zfits,fitH,'k--',label='Hopkins+ 06')
+	plt.fill_between(zfits,10**(np.log10(fitB)-sigB),10**(np.log10(fitB)+sigB),linewidth=1.5,facecolor='grey',alpha=0.2)
+	plt.fill_between(zfits,10**(np.log10(fitH)-sigH),10**(np.log10(fitH)+sigH),linewidth=1.5,facecolor='grey',alpha=0.2)
 	return
 def cosmicSF(sim, sl, bins=100,Volume=50.**3,zrange=False,logbins=True,massform=True,initmass=False):
 	from pynbody.analysis import cosmology
@@ -217,7 +217,6 @@ def cosmicSF(sim, sl, bins=100,Volume=50.**3,zrange=False,logbins=True,massform=
         	zbins = zrange[0] +np.arange(bins+1)*zbinsize
    	from pynbody.analysis import pkdgrav_cosmo as cosmo
     	c = cosmo.Cosmology(sim=sim)
-	print zbins
     	timebins = np.zeros(bins+1)
     	for ii in range(bins+1):
        		timebins[ii] = 13.7-13.7*c.Exp2Time(1.0 / (1+zbins[ii]))/c.Exp2Time(1)
@@ -226,25 +225,28 @@ def cosmicSF(sim, sl, bins=100,Volume=50.**3,zrange=False,logbins=True,massform=
 	if initmass:
 		weight = np.zeros(len(sl['tform']))
 		weight[:] = initmass
-	print timebins
 	SF,binedges = np.histogram(13.7-sl['tform'].in_units('Gyr'),bins=timebins,weights=weight)
 	binnorm = np.zeros(bins)
 	for i in range(bins):
                 binnorm[i] = 1e-9 / (timebins[i+1] - timebins[i])
-	print SF, binnorm
 	sfrdens = SF*binnorm/Volume
 	return sfrdens, timebins, zbins
 				
 def plotCSFR(s,sl,bins=100,Volume=50.**3,massform=True,initmass=False,log=True,zrange=False,overplot=False,style='k-',label=None,plotdata=True,linewidth=4):
 	sfrdens, timebins, zbins = cosmicSF(s,sl,bins=bins,Volume=Volume,massform=massform,initmass=initmass,zrange=zrange,logbins=log)
-	plt.plot((zbins[0:-1]+0.5*(zbins[1:]-zbins[0:-1]))+1,sfrdens,style,label=label,linewidth=linewidth)
+	print zbins[1:]-zbins[0:-1]
+	print zbins
+	plt.plot((zbins[0:-1]+0.5*(zbins[1:]-zbins[0:-1])),sfrdens,style,label=label,linewidth=linewidth)
 	if log: 
 		plt.yscale('log',base=10)
 		plt.xscale('log',base=10)
 	if not overplot:
-		plt.xticks([1,2,3,4,5,6,7,8,9,10],['0','1','2','3','4','5','6','7','8','9'])
+		plt.xticks([0,1,2,3,4,5,6,7,8,9,10],['0','1','2','3','4','5','6','7','8','9','10'])
 	if not overplot and plotdata==True:
 		plotCSFRdata(Volume)
+		plt.ylabel(r'$\rho_{SFR}$ [M$_{\odot}$ yr$^{-1}$ Mpc$^{-1}$]',fontsize=30)
+		plt.xlabel(r'Redshift',fontsize=30)
+	plt.legend(loc='lower left',fontsize=20)
 	return
 	
 def plotSFHandBH(h,s,BHorbit,axarr=None,BHids=[],SFbins=100,trange=None,BHbins=100,tunits='Gyr',label=None,overplot=False,SFcolor='b',BHcolor=['k'],SFline='solid',BHline=['solid'],plotBHDetail=True,maxBH=False):

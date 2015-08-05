@@ -713,11 +713,13 @@ def getAccDens(simname,vol = 25.**3, filename='AccDens.pkl',Mlimit=1.5e6,Llimit=
 		Mlimitsim = Mlimit/munits.in_units('Msol')
 		mdotlimit = Llimit/(0.1*3e10*3e10)
 		mdotlimit /= mdotunits.in_units('g s**-1')
-		cstr = """ awk '{if ($4 > """+str(Mlimitsim)+""" && $12 > """+str(mdotlimit)+""") print $4 " " $12 " " $13 " " $16}' """ + simname + ".orbit > " + simname + ".BHorbit.abridged"
+		cstr = """ awk '{if ($4 - $13 > """+str(Mlimitsim)+""" && $12 > """+str(mdotlimit)+""") print $4 " " $12 " " $13 " " $15 " " $16}' """ + simname + ".orbit > " + simname + ".BHorbit.abridged"
 		os.system(cstr)
 	print "reading in data..."
-	mass, mdot, dM, scale = readcol.readcol(simname+'.BHorbit.abridged',twod=False)
+	mass, mdot, dM, dt, scale = readcol.readcol(simname+'.BHorbit.abridged',twod=False)
 	print "done!"
+	del(dt)
+	gc.collect()
 	#del(iord)
 	#gc.collect()
 	print "sorting time..."
@@ -767,7 +769,7 @@ def plotAccDens_v_z(rhoBH,scale,data=True,style='b-',ylog=True,xlog=True,overplo
 		err = shankar09H - shankar09
 		plt.errorbar([1.03],[shankar09],yerr=[err],color='black',fmt='D',label="Shankar+ 09")
 		Salvaterra12z = (Salvaterra12zH + Salvaterra12zL)/2.
-		plt.errorbar([Salvaterra12z+1],[Salvaterra12],color='black',fmt='x',xerr=[Salvaterra12zH-Salvaterra12z],yerr=0.5*Salvaterra12,lolims=[True],label='Salvaterra+ 12')
+		plt.errorbar([Salvaterra12z+1],[Salvaterra12],color='black',fmt='x',xerr=Salvaterra12zH-Salvaterra12z,yerr=0.5*Salvaterra12,lolims=[True],label='Salvaterra+ 12')
 		plt.errorbar(Treister13z,Treister13,color='black',fmt='o',xerr=Treister13zErr,yerr=0.5*Treister13,lolims=[True,True,True], label='Treister+ 13')
 		plt.errorbar(Hopkins07zp1,10**Hopkins07,color='grey',fmt='o',yerr=(Hopkins07merr,Hopkins07perr),label='Hopkins+ 07')
 	if not overplot:
