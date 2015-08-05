@@ -193,7 +193,7 @@ def k(lam,Rv):
 
 def dustCor(h,s,Rv,A1600max=5.0):
 	dustf = 0.01  #Draine 2007
-	a = pynbody.array.SimArray(0.1,'1e-6 m') #Todini+Ferarra (2001), Nozawa+ (2003)
+	a = pynbody.array.SimArray(0.1,'1e-6 m') #Todini+Ferrarra (2001), Nozawa+ (2003)
 	rho = pynbody.array.SimArray(2.5,'g cm**-3')
 #	Rv = 3.1	
 	s.physical_units()
