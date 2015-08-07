@@ -91,8 +91,8 @@ def pltLumFun(data,lumbins,color='blue',linestyle='-',redshift=1,overplot=False,
 	zz, = np.where(z==redshift)
 	plt.step(lumbins,np.log10(np.append(data[zz,:],data[zz,-1])),color=color,linestyle=linestyle,label=label,lw=linewidth)
 	if plotdata==True:
-		obs = readcol.readcol('/u/sciteam/tremmel/QSOdata/bol_lf_point_dump.dat',twod=False,asdict=True,skipline=38)
-                obs2 = readcol.readcol('/u/sciteam/tremmel/QSOdata/M1450z5_McGreer13.dat',twod=False,asdict=True,skipline=1)
+		obs = readcol.readcol('/nobackupp8/mtremmel/DATA/QSOdata/bol_lf_point_dump.dat',twod=False,asdict=True,skipline=38)
+                obs2 = readcol.readcol('/nobackupp8/mtremmel/DATA/QSOdata/M1450z5_McGreer13.dat',twod=False,asdict=True,skipline=1)
 		tt, = np.where(obs['redshift']==redshift)
 		plt.errorbar(obs['lbol'][tt] + loglbol_sun, obs['dphi'][tt],yerr=obs['sig'][tt],fmt='o',color='grey',ecolor='grey',label='Hopkins+ 2007 (Compilation)')
 		if z[zz] == 6:

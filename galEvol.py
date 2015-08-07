@@ -7,6 +7,7 @@ import pickle
 import pynbody
 import matplotlib.patches as mpatches
 import gc
+import readcol
 
 plt.ion()
 plt.rc('xtick',labelsize=15)
@@ -166,6 +167,124 @@ def colortime(halos=[1,2],average=False,shade=False,simdirs=['romulus8.256gst3.b
 
 	plt.legend(loc='upper left',fontsize=22)
 	return
+
+def plotStarGrowth(stars,type='Total',halo=1,color='blue',linestyle='solid',label=None,plotData=True,error=True,datacolor=['grey','k']):
+	if plotData==True:
+		f = open('/nobackupp8/mtremmel/DATA/Morishita15/Morishita15.pkl','rb')
+		data = pickle.load(f)
+		f.close()
+	if type == 'Total':
+		plt.plot(stars['z'],stars['Total'][halo-1,:],color=color,linestyle=linestyle,label=label)
+		if plotData==True:
+			if error == False: 
+				plt.plot(data['z'],data['totMW'],color=datacolor[0],marker='D',label='CANDELS MW',markersize=10,linestyle='')
+#				plt.plot(data['z'],data['totMG'],color=datacolor[1],marker='^',label='CANDELS M31',markersize=10,linestyle='')
+			if error == True: 
+				plt.errorbar(data['z'],data['totMW'],color=datacolor[0],yerr=[data['totMWerrMinus'],data['totMWerrPlus']],fmt='D',label='CANDELS MW',markersize=10)
+#				plt.errorbar(data['z'],data['totMG'],color=datacolor[1],yerr=[data['totMGerrMinus'],data['totMGerrPlus']],fmt='^',label='CANDELS M31',markersize=10)
+	if type == 'Inner':
+                plt.plot(stars['z'],stars['M <2.5 kpc'][halo-1,:],color=color,linestyle=linestyle,label=label)
+                if plotData==True:
+                        if error == False:
+                                plt.plot(data['z'],data['innerMW'],color=datacolor[0],marker='D',label='CANDELS MW',markersize=10,linestyle='')
+ #                               plt.plot(data['z'],data['innerMG'],color=datacolor[1],marker='^',label='CANDELS M31',markersize=10,linestyle='')
+                        if error == True: 
+                                plt.errorbar(data['z'],data['innerMW'],color=datacolor[0],yerr=[data['innerMWerrMinus'],data['innerMWerrPlus']],fmt='D',label='CANDELS MW',markersize=10)
+  #                              plt.errorbar(data['z'],data['innerMG'],color=datacolor[1],yerr=[data['innerMGerrMinus'],data['innerMGerrPlus']],fmt='^',label='CANDELS M31',markersize=10)
+	if type == 'Outer':
+                plt.plot(stars['z'],stars['M >2.5 kpc'][halo-1,:],color=color,linestyle=linestyle,label=label)
+                if plotData==True:
+                        if error == False:
+                                plt.plot(data['z'],data['outerMW'],color=datacolor[0],marker='D',label='CANDELS MW',markersize=10,linestyle='')
+   #                             plt.plot(data['z'],data['outerMG'],color=datacolor[1],marker='^',label='CANDELS M31',markersize=10,linestyle='')
+                        if error == True: 
+                                plt.errorbar(data['z'],data['outerMW'],color=datacolor[0],yerr=[data['outerMWerrMinus'],data['outerMWerrPlus']],fmt='D',label='CANDELS MW',markersize=10)
+    #                            plt.errorbar(data['z'],data['outerMG'],color=datacolor[1],yerr=[data['outerMGerrMinus'],data['outerMGerrPlus']],fmt='^',label='CANDELS M31',markersize=10)
+
+	plt.ylabel(r'M$_{*}$ [M$_{\odot}$]',fontsize=30)
+	plt.xlabel(r'Redshift',fontsize=30)
+	plt.legend(fontsize=20)
+
+	return
+
+
+def MStarGrowth(lowz,catfiles,Rth='2.5 kpc',halonum=[1],filename='MstarGrowth.pkl'):
+        f = open(catfiles,'r')
+        files = f.readlines()
+        slz = pynbody.load(lowz)
+        lz = str(round(slz.properties['a']**-1 -1,3))
+	Stars = {'Total':pynbody.array.SimArray(np.zeros((len(halonum),len(files)+1)),'Msol'),
+		 'Rhalf':pynbody.array.SimArray(np.zeros((len(halonum),len(files)+1)),'kpc'),
+                 'M <'+Rth:pynbody.array.SimArray(np.zeros((len(halonum),len(files)+1)),'Msol'),
+		 'M >'+Rth:pynbody.array.SimArray(np.zeros((len(halonum),len(files)+1)),'Msol'),
+		 'z':np.zeros(len(files)+1),
+		 'halos':halonum}
+
+        catend = '.cat.z'+lz+'\n'
+	for i in range(len(files)):
+		print "calculating stellar buildup for halos in ", files[i].strip('\n')
+		xx = files[i].find(catend)
+                simname=files[i][0:xx]
+                s = pynbody.load(simname)
+                h = s.halos()
+		Stars['z'][i] = s.properties['a']**-1 -1
+		s.physical_units()
+                catf = open(files[i].strip('\n'))
+                cat = pickle.load(catf)
+                catf.close()
+		amigastat = readcol.readcol(simname+'.amiga.stat',asdict=True)
+		for j in range(len(halonum)):
+                        print "halo", halonum[j]
+                        progs, = np.where(cat==halonum[j])
+                        if len(progs)==0:
+                                print "no progenitors found in this step!"
+                                continue
+			curhalos, = np.where(np.in1d(amigastat['Grp'],progs))
+                        main = amigastat['Grp'][curhalos][np.argmax(amigastat['StarMass(M_sol)'][curhalos])]
+                        print "progenitor", main
+			h1 = h[main]
+			try:
+				pynbody.analysis.halo.center(h1,mode='hyb',wrap=True)
+			except:
+				pynbody.analysis.halo.center(h1,mode='hyb',wrap=True,vel=False)
+			Stars['Total'][j,i] = h1.stars['mass'].in_units('Msol').sum()
+			Stars['M <'+Rth][j,i] = h1.stars['mass'][(h1.stars['r'].in_units(Rth) <= 1)].in_units('Msol').sum()
+			Stars['M >'+Rth][j,i] = h1.stars['mass'][(h1.stars['r'].in_units(Rth) > 1)].in_units('Msol').sum()
+			order = np.argsort(h1.stars['r'])
+			Mcum = np.cumsum(h1.stars['mass'][order].in_units('Msol'))
+			o, = np.where(Mcum >= Stars['Total'][j,i]/2.)
+			Stars['Rhalf'][j,i] = h1.stars['r'].in_units('kpc')[order[o[0]]]
+			del(Mcum)
+			del(order)
+			del(o)
+			gc.collect()
+		del(s)
+		del(h)
+		del(cat)
+		gc.collect()
+	h = slz.halos()
+        slz.physical_units()
+	print "calculating stellar buildup for halos in ",lowz
+	Stars['z'][i+1] =  slz.properties['a']**-1 -1
+        for j in range(len(halonum)):
+                h1 = h[halonum[j]]
+		try:
+                	pynbody.analysis.halo.center(h1,mode='hyb',wrap=True)
+                except:
+                        pynbody.analysis.halo.center(h1,mode='hyb',wrap=True,vel=False)
+		Stars['Total'][j,i+1] = h1.stars['mass'].in_units('Msol').sum()
+                Stars['M <'+Rth][j,i+1] = h1.stars['mass'][(h1.stars['r'].in_units(Rth) <= 1)].in_units('Msol').sum()
+                Stars['M >'+Rth][j,i+1] = h1.stars['mass'][(h1.stars['r'].in_units(Rth) > 1)].in_units('Msol').sum()
+		order = np.argsort(h1.stars['r'])
+                Mcum = np.cumsum(h1.stars['mass'][order].in_units('Msol'))
+                o, = np.where(Mcum >= Stars['Total'][j,i+1]/2.)
+                Stars['Rhalf'][j,i+1] = h1.stars['r'].in_units('kpc')[order[o[0]]]
+	if filename:
+		print "saving data..."
+		f = open(filename,'wb')
+		pickle.dump(Stars,f)
+		f.close()
+	return Stars
 
 def BrightBHGal(bhhalo,bhorbit,filelist='files.list',stepfile='steps.list',dt='100 Myr',lcut=1e43,filename='brightBHgal.pkl'):
 
@@ -339,5 +458,4 @@ def plotBHSFRdata():
 	plt.legend(fontsize=20)
 	plt.ylabel(r'$\dot{\mathrm{M}_{BH}}$ [M$_{odot}$ yr$^{-1}$]',fontsize=30)
 	plt.xlabel(r'SFR [M$_{odot}$ yr$^{-1}$]',fontsize=30)
-	return
-	
+	return	
